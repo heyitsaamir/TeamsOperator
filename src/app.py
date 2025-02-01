@@ -33,10 +33,25 @@ app = web.Application(middlewares=[aiohttp_error_middleware])
 app.add_routes(routes)
 
 async def on_socket_connection(user_id: str, socket: socketio.AsyncServer):
+    print("connection", user_id)
     session = session_storage.get_or_create_session(user_id)
+    
+    # Convert session state to message format expected by frontend
+    messages = []
+    if hasattr(session, 'session_state'):
+        messages = [
+            {
+                "screenshot": state.screenshot,
+                "action": state.action,
+                "memory": state.memory,
+                "next_goal": state.next_goal,
+                "actions": state.actions
+            }
+            for state in session.session_state
+        ]
+    
     await socket.emit("initializeState", {
-        "browser_state": session.browser_state.title if session.browser_state else None,
-        "session_state": session.session_state.is_complete
+        "messages": messages
     })
 
 async def on_socket_message(user_id: str, context: TurnContext, message: str):

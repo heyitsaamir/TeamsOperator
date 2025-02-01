@@ -65,8 +65,8 @@ class BotWebSync:
         adapter.use(SocketMiddleware(self.io, self.user_conversation_ref, self.user_sid))
 
         @self.io.event
-        async def connect(sid, environ):
-            print("connect", sid, environ)
+        async def connect(sid, environ, auth):
+            print("connect", sid, environ, auth)
             # Parse query string to get userAadId
             query = environ.get('QUERY_STRING', '')
             params = parse_qs(query)

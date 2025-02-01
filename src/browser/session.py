@@ -1,21 +1,14 @@
 from dataclasses import dataclass
+from typing import List, Optional
 
-from browser_use.browser.views import BrowserState
-
-
-@dataclass
-class SessionState:
-    step_number: int = 0
-    is_complete: bool = False
-    error: str | None = None
 
 @dataclass
+class SessionStepState:
+    screenshot: str
+    action: str  # Current evaluation
+    memory: Optional[str] = None
+    next_goal: Optional[str] = None
+    actions: List[str] = None  # List of planned actions
+
 class Session:
-    browser_state: BrowserState | None = None
-    session_state: SessionState | None = None
-
-    @classmethod
-    def create(cls) -> "Session":
-        return cls(
-            session_state=SessionState()
-        )
+    session_state: list[SessionStepState] = []

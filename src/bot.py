@@ -27,12 +27,28 @@ bot_app = Application[TurnState](
 @bot_app.conversation_update("membersAdded")
 async def on_members_added(context: TurnContext, state: TurnState):
     await context.send_activity("How can I help you today?")
-
-@bot_app.message(re.compile("search: .*"))
-async def on_search(context: TurnContext, state: TurnState):
-    await context.send_activity(f"You said: {context.activity.text}")
-    query = context.activity.text.split("search: ")[1]
+    
+async def reset_session(context: TurnContext):
+    session = context.has("session") and context.get("session")
+    if session:
+        session.session_state = []
+    io = context.has("socket") and context.get("socket")
+    if io:
+        await io.emit("reset", {})
+        
+async def run_agent(context: TurnContext, query: str):
+    io = context.has("socket") and context.get("socket")
+    if io:
+        await io.emit("initializeGoal", query)
     result = await run_browser_agent(query, context)
+    return result
+
+@bot_app.message(re.compile("operator: .*"))
+async def on_operator(context: TurnContext, state: TurnState):
+    await context.send_activity(f"You said: {context.activity.text}")
+    query = context.activity.text.split("operator: ")[1]
+    await reset_session(context)
+    result = await run_agent(context, query)
     conversation_ref = TurnContext.get_conversation_reference(context.activity)
     async def send_result(context: TurnContext):
         action_results = result.action_results()
