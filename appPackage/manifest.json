@@ -37,7 +37,7 @@
     {
       "entityId": "operator-web",
       "name": "Operator Web",
-      "contentUrl": "https://1v28mq98-5173.usw2.devtunnels.ms",
+      "contentUrl": "${{BOT_WEB_URL}}",
       "scopes": ["personal"]
     }
   ],
