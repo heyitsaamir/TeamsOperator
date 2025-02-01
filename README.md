@@ -20,8 +20,10 @@ You need to include either your Azure open ai details or your OpenAI details in 
 3. Run `uv sync` to install the dependencies.
 4. Activate the virtual environment with `source .venv/bin/activate` (or `.\.venv\Scripts\activate` on Windows)
 5. Set up a tunnel for the agent on port 3978.
-   > [!NOTE]
-   > See [setting up dev tunnels](#setting-up-dev-tunnels) on how to do that. (Note: Normally Teams Toolkit does this for you, but I don't like how it builds a new tunnel every time.).
+
+> [!NOTE]
+> See [setting up dev tunnels](#setting-up-dev-tunnels) on how to do that. (Note: Normally Teams Toolkit does this for you, but I don't like how it builds a new tunnel every time.).
+
 6. Run the tunnel with `devtunnel host <tunnel-name>`
 7. Go to `.env.local` and set the `BOT_ENDPOINT` to the URL of your tunnel, and `BOT_DOMAIN` to the domain of your tunnel (without the https://).
 8. At this point, you can need to provision the bot. You can either do this manually by running `teamsapp provision --env=local` or you can do it using the Teams Toolkit extension.
