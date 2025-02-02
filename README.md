@@ -5,6 +5,18 @@ This is a demo of operator use in Teams. It uses the browser_use library to run 
 ## Keys
 
 You need to include either your Azure open ai details or your OpenAI details in the `.env` file.
+An .env file should look like this. Note that you can't have both Azure and OpenAI keys. So pick the one you have.
+
+```
+BOT_ID=
+BOT_PASSWORD=
+AZURE_OPENAI_API_KEY=
+AZURE_OPENAI_DEPLOYMENT=
+AZURE_OPENAI_API_BASE=
+AZURE_OPENAI_API_VERSION=
+OPENAI_API_KEY=
+OPENAI_MODEL_NAME=
+```
 
 ## Running the agent
 
