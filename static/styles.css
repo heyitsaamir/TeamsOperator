@@ -1,0 +1,12 @@
+/* Additional styles if needed beyond Tailwind */
+.message {
+    transition: all 0.2s;
+}
+
+.message-expanded {
+    max-height: none;
+}
+
+.rotate-180 {
+    transform: rotate(180deg);
+} 

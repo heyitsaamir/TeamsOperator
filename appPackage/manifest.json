@@ -37,7 +37,7 @@
     {
       "entityId": "operator-web",
       "name": "Operator Web",
-      "contentUrl": "${{BOT_WEB_URL}}",
+      "contentUrl": "${{BOT_ENDPOINT}}",
       "scopes": ["personal"]
     }
   ],

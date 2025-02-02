@@ -5,7 +5,7 @@ import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from botbuilder.core import TurnContext
-from browser_use import Agent, Browser, BrowserConfig
+from browser_use import Agent
 from browser_use.agent.views import AgentOutput
 from browser_use.browser.views import BrowserState
 from langchain_openai import AzureChatOpenAI, ChatOpenAI
@@ -67,14 +67,6 @@ async def run_browser_agent(query: str, context: TurnContext):
         task=query,
         llm=llm,
         register_new_step_callback=step_callback,
-        browser=Browser(
-            config=BrowserConfig(
-                chrome_instance_path="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",  # macOS path
-                # For Windows, typically: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
-                # For Linux, typically: '/usr/bin/google-chrome'
-                headless=True,
-            )
-        ),
     )
     try:
         result = await agent.run()

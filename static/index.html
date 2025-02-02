@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Operator</title>
+    <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
+    <script src="https://res.cdn.office.net/teams-js/2.19.0/js/MicrosoftTeams.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <div class="flex flex-col h-screen w-full bg-gray-950">
+        <div class="w-full bg-gray-900 border-b border-gray-700 p-4 flex justify-between items-center">
+            <h1 class="text-xl font-bold text-gray-100">Operator</h1>
+            <div class="flex items-center gap-2">
+                <div id="connection-status" class="w-2 h-2 rounded-full bg-red-500"></div>
+                <span id="connection-text" class="text-sm text-gray-300">Disconnected</span>
+            </div>
+        </div>
+
+        <div class="flex flex-1 p-4">
+            <div class="flex flex-col w-[80%] pr-4">
+                <div class="flex flex-col gap-4 h-full overflow-y-auto">
+                    <div id="screenshot-container" class="hidden border border-gray-700 rounded-lg p-2 bg-gray-900">
+                        <img id="screenshot" alt="Browser state" class="w-full">
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex flex-col w-[20%]">
+                <div id="goal-container" class="hidden mb-4 p-3 bg-gray-800 border border-gray-600 rounded-lg">
+                    <div class="text-sm font-medium text-gray-400 mb-1">Current Goal:</div>
+                    <div id="current-goal" class="text-gray-100"></div>
+                </div>
+                <div id="messages-container" class="flex flex-col gap-2 overflow-y-auto"></div>
+            </div>
+        </div>
+
+        <div id="live-button" class="hidden fixed bottom-4 right-4 bg-red-600 text-white px-4 py-2 rounded-lg cursor-pointer hover:bg-red-700 transition-colors shadow-lg">
+            Jump to live
+        </div>
+    </div>
+    <script src="/static/app.js"></script>
+</body>
+</html> 

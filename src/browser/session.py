@@ -10,5 +10,10 @@ class SessionStepState:
     next_goal: Optional[str] = None
     actions: List[str] = None  # List of planned actions
 
+
 class Session:
     session_state: list[SessionStepState] = []
+
+    @classmethod
+    def create(cls) -> "Session":
+        return cls()
