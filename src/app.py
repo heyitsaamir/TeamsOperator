@@ -22,7 +22,7 @@ web_sync = BotWebSync()
 session_storage = InMemorySessionStorage()
 
 # Get the absolute path to the static directory
-STATIC_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static")
+STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
 print(f"Static directory path: {STATIC_DIR}")
 print(f"Directory exists: {os.path.exists(STATIC_DIR)}")
 print(
@@ -125,4 +125,4 @@ async def start_websocket(app: web.Application):
 app.on_startup.append(start_websocket)
 
 if __name__ == "__main__":
-    web.run_app(app, host="localhost", port=Config.PORT)
+    web.run_app(app, host="0.0.0.0", port=Config.PORT)
