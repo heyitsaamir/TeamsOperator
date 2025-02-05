@@ -44,4 +44,4 @@ OPENAI_MODEL_NAME=
 1. Make sure [devtunnel](https://github.com/microsoft/devtunnel) is installed.
 2. Run `devtunnel create <tunnel-name>` to create a new tunnel.
 3. Run `devtunnel port create <tunnel-name> -p <port-number>` to create a new port for the tunnel.
-4. Run `devtunnel access create <tunnel-name> -p <port-number>` to set up anonymous access to the tunnel.
+4. Run `devtunnel access create <tunnel-name> -p <port-number> --anonymous` to set up anonymous access to the tunnel.
