@@ -17,6 +17,9 @@ llm = (
         azure_endpoint=os.environ["AZURE_OPENAI_API_BASE"],
         azure_deployment=os.environ["AZURE_OPENAI_DEPLOYMENT"],
         openai_api_version=os.environ["AZURE_OPENAI_API_VERSION"],
+        model_name=os.environ[
+            "AZURE_OPENAI_DEPLOYMENT"
+        ],  # BrowserUse has a bug where this model_name is required
     )
     if os.environ["AZURE_OPENAI_API_BASE"]
     else ChatOpenAI(model=os.environ["OPENAI_MODEL_NAME"])
