@@ -22,7 +22,7 @@ llm = (
             "AZURE_OPENAI_DEPLOYMENT"
         ],  # BrowserUse has a bug where this model_name is required
     )
-    if os.environ["AZURE_OPENAI_API_BASE"]
+    if os.environ.get("AZURE_OPENAI_API_BASE", None)
     else ChatOpenAI(model=os.environ["OPENAI_MODEL_NAME"])
 )
 
@@ -86,7 +86,7 @@ async def run_browser_agent(query: str, context: TurnContext):
     try:
         result = await agent.run()
         print(result)
-        browser.close()
+        asyncio.create_task(browser_context.close())
         return result
     except Exception as e:
         print(e)
