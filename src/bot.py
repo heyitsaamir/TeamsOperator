@@ -10,7 +10,7 @@ from teams.state import TurnState
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from browser.browser_agent import run_browser_agent
+from browser.browser_agent import BrowserAgent
 from config import Config
 
 config = Config()
@@ -32,19 +32,19 @@ async def on_members_added(context: TurnContext, state: TurnState):
 
 
 async def reset_session(context: TurnContext):
-    session = context.has("session") and context.get("session")
+    session = context.get("session")
     if session:
         session.session_state = []
-    io = context.has("socket") and context.get("socket")
-    if io:
+    if io := context.get("socket"):
         await io.emit("reset", {})
 
 
 async def run_agent(context: TurnContext, query: str):
-    io = context.has("socket") and context.get("socket")
-    if io:
+    if io := context.get("socket"):
         await io.emit("initializeGoal", query)
-    result = await run_browser_agent(query, context)
+
+    browser_agent = BrowserAgent(context)
+    result = await browser_agent.run(query)
     return result
 
 
@@ -53,27 +53,19 @@ async def on_operator(context: TurnContext, state: TurnState):
     query = context.activity.text.split("operator: ")[1]
     await reset_session(context)
 
-    # Store conversation reference for later use
     conversation_ref = TurnContext.get_conversation_reference(context.activity)
 
-    # Create background task
     async def background_task():
         result = await run_agent(context, query)
 
         async def send_result(context: TurnContext):
-            action_results = result.action_results()
-            last_result = action_results[-1] if action_results else None
-            if last_result:
-                await context.send_activity(last_result.extracted_content)
+            await context.send_activity(result)
 
         await context.adapter.continue_conversation(
             conversation_ref, send_result, config.APP_ID
         )
 
-    # Launch background task without awaiting it
     asyncio.create_task(background_task())
-
-    # Immediately respond to user
     await context.send_activity("Starting up the browser agent to do this work.")
 
 

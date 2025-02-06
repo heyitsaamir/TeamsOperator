@@ -1,8 +1,7 @@
 import asyncio
+import logging
 import os
-import sys
-
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from typing import Optional
 
 from botbuilder.core import TurnContext
 from browser_use import Agent, Browser
@@ -13,30 +12,32 @@ from langchain_openai import AzureChatOpenAI, ChatOpenAI
 
 from browser.session import SessionStepState
 
-llm = (
-    AzureChatOpenAI(
-        azure_endpoint=os.environ["AZURE_OPENAI_API_BASE"],
-        azure_deployment=os.environ["AZURE_OPENAI_DEPLOYMENT"],
-        openai_api_version=os.environ["AZURE_OPENAI_API_VERSION"],
-        model_name=os.environ[
-            "AZURE_OPENAI_DEPLOYMENT"
-        ],  # BrowserUse has a bug where this model_name is required
-    )
-    if os.environ.get("AZURE_OPENAI_API_BASE", None)
-    else ChatOpenAI(model=os.environ["OPENAI_MODEL_NAME"])
-)
 
+class BrowserAgent:
+    def __init__(self, context: TurnContext):
+        self.context = context
+        self.browser = Browser()
+        self.browser_context = BrowserContext(browser=self.browser)
+        self.llm = self._setup_llm()
 
-async def run_browser_agent(query: str, context: TurnContext):
-    browser = Browser()
-    browser_context = BrowserContext(browser=browser)
+    @staticmethod
+    def _setup_llm():
+        if azure_endpoint := os.environ.get("AZURE_OPENAI_API_BASE"):
+            return AzureChatOpenAI(
+                azure_endpoint=azure_endpoint,
+                azure_deployment=os.environ["AZURE_OPENAI_DEPLOYMENT"],
+                azure_api_version=os.environ["AZURE_OPENAI_API_VERSION"],
+                model_name=os.environ["AZURE_OPENAI_DEPLOYMENT"],
+            )
+        return ChatOpenAI(model=os.environ["OPENAI_MODEL_NAME"])
 
-    async def handle_screenshot_and_emit(step: SessionStepState, io):
-        screenshot_new = await browser_context.take_screenshot()
+    async def _handle_screenshot_and_emit(
+        self, step: SessionStepState, io: Optional[object]
+    ) -> None:
+        screenshot_new = await self.browser_context.take_screenshot()
         step.screenshot = screenshot_new
 
-        session = context.has("session") and context.get("session")
-        if session:
+        if session := self.context.get("session"):
             session.session_state.append(step)
 
             if io:
@@ -50,13 +51,15 @@ async def run_browser_agent(query: str, context: TurnContext):
                         "actions": step.actions,
                     },
                 )
-        else:
-            print("No session")
 
-    def step_callback(state: BrowserState, output: AgentOutput, step_number: int):
-        session = context.has("session") and context.get("session")
-        io = context.has("socket") and context.get("socket")
-        if session:
+    def step_callback(
+        self, state: BrowserState, output: AgentOutput, step_number: int
+    ) -> None:
+        io = self.context.get("socket")
+        if not io:
+            logging.warning("Socket not available for real-time updates")
+
+        if session := self.context.get("session"):
             actions = (
                 [action.model_dump_json(exclude_unset=True) for action in output.action]
                 if output.action
@@ -71,23 +74,27 @@ async def run_browser_agent(query: str, context: TurnContext):
                 actions=actions,
             )
 
-            # Fire and forget the screenshot capture and session update
-            asyncio.create_task(handle_screenshot_and_emit(step, io))
+            asyncio.create_task(self._handle_screenshot_and_emit(step, io))
         else:
-            print("No session")
+            logging.warning("Session not available to store step state")
 
-    agent = Agent(
-        task=query,
-        llm=llm,
-        register_new_step_callback=step_callback,
-        browser_context=browser_context,
-        generate_gif=False,
-    )
-    try:
-        result = await agent.run()
-        print(result)
-        asyncio.create_task(browser_context.close())
-        return result
-    except Exception as e:
-        print(e)
-        return "Ran into an error"
+    async def run(self, query: str) -> str:
+        agent = Agent(
+            task=query,
+            llm=self.llm,
+            register_new_step_callback=self.step_callback,
+            browser_context=self.browser_context,
+            generate_gif=False,
+        )
+
+        try:
+            result = await agent.run()
+            asyncio.create_task(self.browser_context.close())
+
+            action_results = result.action_results()
+            if action_results and (last_result := action_results[-1]):
+                return last_result.extracted_content
+            return "No results found"
+
+        except Exception as e:
+            return f"Error during browser agent execution: {str(e)}"
