@@ -32,12 +32,15 @@ OPENAI_MODEL_NAME=
 6. Run the tunnel with `devtunnel host <tunnel-name>`
 7. Go to `.env.local` and set the `BOT_ENDPOINT` to the URL of your tunnel, and `BOT_DOMAIN` to the domain of your tunnel (without the https://).
 8. At this point, you can need to provision the bot. You can either do this manually by running `teamsapp provision --env=local` or you can do it using the Teams Toolkit extension.
-9. Now run the agent with `python src/app.py`
+9. Finally, you need to deploy the bot. You can either do this manually by running `teamsapp deploy --env=local` or you can do it using the Teams Toolkit extension.
+10. Now run the agent with `python src/app.py`
 
-## Run on teams
+## Run on Teams
 
 1. Build the package zip with `teamsapp package --env local`
 2. Sideload the package into teams.
+3. To see the bot side by side with the web, you need to disable the`simplifiedBotChatPaneIsOptInList` flag.
+4. Open up the app and type: `operator: <your query>`
 
 ## Setting up dev tunnels
 
