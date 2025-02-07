@@ -23,8 +23,8 @@ This is a demo of operator use in Teams. It uses the browser_use library to run 
 
 3. Set up a tunnel for the agent on port 3978:
 
-   > [!NOTE]
-   > See [setting up dev tunnels](#setting-up-dev-tunnels) on how to do that. (Note: Normally Teams Toolkit does this for you, but I don't like how it builds a new tunnel every time.).
+> [!NOTE]
+> See [setting up dev tunnels](#setting-up-dev-tunnels) on how to do that. (Note: Normally Teams Toolkit does this for you, but I don't like how it builds a new tunnel every time.).
 
 4. Run the tunnel with `devtunnel host <tunnel-name>`
 5. Go to `.env.local` and set the `BOT_ENDPOINT` to the URL of your tunnel, and `BOT_DOMAIN` to the domain of your tunnel (without the https://).
