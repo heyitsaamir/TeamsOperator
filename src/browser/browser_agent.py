@@ -4,7 +4,7 @@ import os
 from typing import Optional
 
 from botbuilder.core import TurnContext
-from browser_use import Agent, Browser
+from browser_use import Agent, Browser, BrowserConfig
 from browser_use.agent.views import AgentOutput
 from browser_use.browser.context import BrowserContext
 from browser_use.browser.views import BrowserState
@@ -16,7 +16,11 @@ from browser.session import SessionStepState
 class BrowserAgent:
     def __init__(self, context: TurnContext):
         self.context = context
-        self.browser = Browser()
+        self.browser = Browser(
+            config=BrowserConfig(
+                chrome_instance_path="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+            )
+        )
         self.browser_context = BrowserContext(browser=self.browser)
         self.llm = self._setup_llm()
 
@@ -87,6 +91,7 @@ class BrowserAgent:
             register_new_step_callback=self.step_callback,
             browser_context=self.browser_context,
             generate_gif=False,
+            message_context="For Trello, navigate to 'https://trello.com/b/4YEoaDa4/mvp'",
         )
 
         try:
