@@ -26,8 +26,10 @@ class BrowserAgent:
             return AzureChatOpenAI(
                 azure_endpoint=azure_endpoint,
                 azure_deployment=os.environ["AZURE_OPENAI_DEPLOYMENT"],
-                azure_api_version=os.environ["AZURE_OPENAI_API_VERSION"],
-                model_name=os.environ["AZURE_OPENAI_DEPLOYMENT"],
+                openai_api_version=os.environ["AZURE_OPENAI_API_VERSION"],
+                model_name=os.environ[
+                    "AZURE_OPENAI_DEPLOYMENT"
+                ],  # BrowserUse has a bug where this model_name is required
             )
         return ChatOpenAI(model=os.environ["OPENAI_MODEL_NAME"])
 
