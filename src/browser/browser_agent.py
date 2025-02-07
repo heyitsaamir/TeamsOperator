@@ -11,7 +11,7 @@ from browser_use.browser.context import BrowserContext
 from browser_use.browser.views import BrowserState
 from langchain_openai import AzureChatOpenAI, ChatOpenAI
 
-from browser.session import SessionStepState
+from browser.session import Session, SessionStepState
 
 
 class BrowserAgent:
@@ -37,10 +37,7 @@ class BrowserAgent:
 
     def _create_progress_card(
         self,
-        action: str,
-        next_goal: str = None,
-        final_result: str = None,
-        screenshot: str = None,
+        step: SessionStepState,
         agent_history: AgentHistoryList = None,
     ) -> dict:
         card = {
@@ -51,13 +48,18 @@ class BrowserAgent:
         }
 
         # Add screenshot if available
-        if screenshot:
+        if step.screenshot:
             card["body"].append(
-                {"type": "Image", "url": f"data:image/png;base64,{screenshot}"}
+                {
+                    "type": "Image",
+                    "url": f"data:image/png;base64,{step.screenshot}",
+                    "msTeams": {
+                        "allowExpand": True,
+                    },
+                }
             )
-
         # Add progress section with next goal
-        if next_goal:
+        if step.next_goal:
             progress_section = {
                 "type": "ColumnSet",
                 "columns": [
@@ -73,7 +75,9 @@ class BrowserAgent:
                             {
                                 "type": "TextBlock",
                                 "text": (
-                                    next_goal if next_goal else "Task in progress..."
+                                    step.next_goal
+                                    if step.next_goal
+                                    else "Task in progress..."
                                 ),
                                 "wrap": True,
                             }
@@ -98,7 +102,7 @@ class BrowserAgent:
                     "items": [
                         {
                             "type": "TextBlock",
-                            "text": final_result if final_result else action,
+                            "text": step.action,
                             "wrap": True,
                         }
                     ],
@@ -149,15 +153,81 @@ class BrowserAgent:
         return card
 
     async def _handle_screenshot_and_emit(
-        self, step: SessionStepState, io: Optional[object]
+        self, session: Session, output: AgentOutput, io: Optional[object]
     ) -> None:
         screenshot_new = await self.browser_context.take_screenshot()
-        step.screenshot = screenshot_new
+        actions = (
+            [action.model_dump_json(exclude_unset=True) for action in output.action]
+            if output.action
+            else []
+        )
 
+        step = SessionStepState(
+            screenshot=screenshot_new,
+            action=output.current_state.evaluation_previous_goal,
+            memory=output.current_state.memory,
+            next_goal=output.current_state.next_goal,
+            actions=actions,
+        )
+
+        previous_step = session.session_state[-1] if session.session_state else None
+        session.session_state.append(step)
+
+        # Update the Teams message with card
+        activity = Activity(
+            id=self.activity_id,
+            type="message",
+            attachment_layout=AttachmentLayoutTypes.list,
+            attachments=[
+                Attachment(
+                    content_type="application/vnd.microsoft.card.adaptive",
+                    content=self._create_progress_card(
+                        step=step,
+                        agent_history=self.agent_history,
+                    ),
+                )
+            ],
+        )
+        await self.context.update_activity(activity=activity)
+
+        # Emit to socket if available
+        if io:
+            await io.emit(
+                "message",
+                {
+                    "screenshot": step.screenshot,
+                    "action": step.action,
+                    "memory": step.memory,
+                    "next_goal": step.next_goal,
+                    "actions": step.actions,
+                },
+            )
+
+    def step_callback(
+        self, state: BrowserState, output: AgentOutput, step_number: int
+    ) -> None:
         if session := self.context.get("session"):
-            session.session_state.append(step)
+            # Handle screenshot and update card in one go
+            asyncio.create_task(
+                self._handle_screenshot_and_emit(
+                    session,
+                    output,
+                    self.context.get("socket") if self.context.has("socket") else None,
+                )
+            )
+        else:
+            logging.warning("Session not available to store step state")
 
-            # Update the Teams message with card
+    async def _send_final_activity(self, message: str) -> None:
+        session = self.context.has("session") and self.context.get("session")
+        if session:
+            # Get the last screenshot if available
+            last_screenshot = (
+                session.session_state[-1].screenshot if session.session_state else None
+            )
+
+            step = SessionStepState(action=message, screenshot=last_screenshot)
+
             activity = Activity(
                 id=self.activity_id,
                 type="message",
@@ -166,59 +236,29 @@ class BrowserAgent:
                     Attachment(
                         content_type="application/vnd.microsoft.card.adaptive",
                         content=self._create_progress_card(
-                            action=step.action,
-                            next_goal=step.next_goal,
-                            screenshot=step.screenshot,
-                            agent_history=self.agent_history,
+                            step=step, agent_history=self.agent_history
                         ),
                     )
                 ],
             )
             await self.context.update_activity(activity=activity)
-
-            # Emit to socket if available
-            if io:
-                await io.emit(
-                    "message",
-                    {
-                        "screenshot": step.screenshot,
-                        "action": step.action,
-                        "memory": step.memory,
-                        "next_goal": step.next_goal,
-                        "actions": step.actions,
-                    },
-                )
-
-    def step_callback(
-        self, state: BrowserState, output: AgentOutput, step_number: int
-    ) -> None:
-        if session := self.context.get("session"):
-            actions = (
-                [action.model_dump_json(exclude_unset=True) for action in output.action]
-                if output.action
-                else []
-            )
-
-            step = SessionStepState(
-                screenshot=None,
-                action=output.current_state.evaluation_previous_goal,
-                memory=output.current_state.memory,
-                next_goal=output.current_state.next_goal,
-                actions=actions,
-            )
-
-            # Handle screenshot and update card in one go
-            asyncio.create_task(
-                self._handle_screenshot_and_emit(step, self.context.get("socket"))
-            )
         else:
-            logging.warning("Session not available to store step state")
+            logging.warning("Session not available to store final state")
+
+    def done_callback(self, result) -> None:
+        action_results = result.action_results()
+        if action_results and (last_result := action_results[-1]):
+            final_result = last_result.extracted_content
+            asyncio.create_task(self._send_final_activity(final_result))
+        else:
+            asyncio.create_task(self._send_final_activity("No results found"))
 
     async def run(self, query: str) -> str:
         agent = Agent(
             task=query,
             llm=self.llm,
             register_new_step_callback=self.step_callback,
+            register_done_callback=self.done_callback,
             browser_context=self.browser_context,
             generate_gif=False,
         )
@@ -229,59 +269,13 @@ class BrowserAgent:
             asyncio.create_task(self.browser_context.close())
 
             action_results = result.action_results()
-            if action_results and (last_result := action_results[-1]):
-                final_result = last_result.extracted_content
-                # Final update with completion status
-                activity = Activity(
-                    id=self.activity_id,
-                    type="message",
-                    attachment_layout=AttachmentLayoutTypes.list,
-                    attachments=[
-                        Attachment(
-                            content_type="application/vnd.microsoft.card.adaptive",
-                            content=self._create_progress_card(
-                                action="Task completed",
-                                final_result=final_result,
-                            ),
-                        )
-                    ],
-                )
-                await self.context.update_activity(activity=activity)
-                return final_result
-            else:
-                # No results case
-                activity = Activity(
-                    id=self.activity_id,
-                    type="message",
-                    attachment_layout=AttachmentLayoutTypes.list,
-                    attachments=[
-                        Attachment(
-                            content_type="application/vnd.microsoft.card.adaptive",
-                            content=self._create_progress_card(
-                                action="Task completed",
-                                final_result="No results found",
-                            ),
-                        )
-                    ],
-                )
-                await self.context.update_activity(activity=activity)
-                return "No results found"
+            return (
+                action_results[-1].extracted_content
+                if action_results and action_results[-1]
+                else "No results found"
+            )
 
         except Exception as e:
             error_message = f"Error during browser agent execution: {str(e)}"
-            activity = Activity(
-                id=self.activity_id,
-                type="message",
-                attachment_layout=AttachmentLayoutTypes.list,
-                attachments=[
-                    Attachment(
-                        content_type="application/vnd.microsoft.card.adaptive",
-                        content=self._create_progress_card(
-                            action="Error occurred",
-                            final_result=error_message,
-                        ),
-                    )
-                ],
-            )
-            await self.context.update_activity(activity=activity)
+            await self._send_final_activity(error_message)
             return error_message

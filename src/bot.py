@@ -32,15 +32,17 @@ async def on_members_added(context: TurnContext, state: TurnState):
 
 
 async def reset_session(context: TurnContext):
-    session = context.get("session")
+    session = context.has("session") and context.get("session")
     if session:
         session.session_state = []
-    if io := context.get("socket"):
+    io = context.has("socket") and context.get("socket")
+    if io:
         await io.emit("reset", {})
 
 
 async def run_agent(context: TurnContext, query: str, activity_id: str):
-    if io := context.get("socket"):
+    io = context.has("socket") and context.get("socket")
+    if io:
         await io.emit("initializeGoal", query)
 
     browser_agent = BrowserAgent(context, activity_id)
