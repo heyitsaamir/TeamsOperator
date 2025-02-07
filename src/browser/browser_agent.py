@@ -22,7 +22,7 @@ class BrowserAgent:
 
     @staticmethod
     def _setup_llm():
-        if azure_endpoint := os.environ.get("AZURE_OPENAI_API_BASE"):
+        if azure_endpoint := os.environ.get("AZURE_OPENAI_API_BASE", None):
             return AzureChatOpenAI(
                 azure_endpoint=azure_endpoint,
                 azure_deployment=os.environ["AZURE_OPENAI_DEPLOYMENT"],
