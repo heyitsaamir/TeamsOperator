@@ -21,5 +21,6 @@ EXPOSE 3978
 
 ENV VIRTUAL_ENV=/app/.venv
 ENV PATH="/app/.venv/bin:$PATH"
+ENV IS_DOCKER_ENV=true
 
 ENTRYPOINT ["python", "app.py"]

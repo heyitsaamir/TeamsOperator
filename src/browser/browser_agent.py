@@ -5,7 +5,7 @@ from typing import Optional
 
 from botbuilder.core import TurnContext
 from botbuilder.schema import Activity, Attachment, AttachmentLayoutTypes
-from browser_use import Agent, Browser
+from browser_use import Agent, Browser, BrowserConfig
 from browser_use.agent.views import AgentHistoryList, AgentOutput
 from browser_use.browser.context import BrowserContext
 from browser_use.browser.views import BrowserState
@@ -18,7 +18,11 @@ class BrowserAgent:
     def __init__(self, context: TurnContext, activity_id: str):
         self.context = context
         self.activity_id = activity_id
-        self.browser = Browser()
+        self.browser = Browser(
+            config=BrowserConfig(
+                headless=True if os.environ.get("IS_DOCKER_ENV") else None,
+            )
+        )
         self.browser_context = BrowserContext(browser=self.browser)
         self.llm = self._setup_llm()
 
